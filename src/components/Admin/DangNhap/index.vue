@@ -56,21 +56,35 @@ export default {
     data() {
         return {
             login: {},
-            login1:{},
         }
     },
     methods: {
+        getRedirectPath(defaultPath) {
+            const redirect = this.$route.query.redirect;
+
+            if (typeof redirect === 'string' && redirect.startsWith('/admin')) {
+                return redirect;
+            }
+
+            return defaultPath;
+        },
+        handleLoginSuccess(storageKey, token, defaultPath, message) {
+            localStorage.setItem(storageKey, token);
+            toaster.success(message);
+            this.$router.replace(this.getRedirectPath(defaultPath));
+        },
         dangNhapNhanVien() {
             axios
                 .post("http://127.0.0.1:8000/api/nhan-vien/dang-nhap", this.login)
                 .then((res) => {
                     if (res.data.status) {
-                        toaster.success(res.data.message);
-                        localStorage.setItem('token_admin', res.data.token);
-                        this.$router.push('/admin/nhan-vien');
+                        this.handleLoginSuccess('token_admin', res.data.token, '/admin/dashboard', res.data.message);
                     } else {
                         toaster.error(res.data.message)
                     }
+                })
+                .catch(() => {
+                    toaster.error('Đăng nhập thất bại, vui lòng thử lại.');
                 });
         },
         dangNhapKhachHang(){
@@ -78,12 +92,13 @@ export default {
                 .post("http://127.0.0.1:8000/api/khach-hang/dang-nhap",this.login)
                 .then((res) => {
                     if (res.data.status) {
-                        toaster.success(res.data.message);
-                        localStorage.setItem('khach_hang_token',res.data.token)
-                        this.$router.push('/admin/khach-hang')
+                        this.handleLoginSuccess('khach_hang_token', res.data.token, '/admin/khach-hang', res.data.message);
                     } else {
                         toaster.error(res.data.message)
                     }
+                })
+                .catch(() => {
+                    toaster.error('Đăng nhập thất bại, vui lòng thử lại.');
                 });
         }
     },

@@ -1,113 +1,167 @@
-import { createRouter, createWebHistory } from "vue-router"; // cài vue-router: npm install vue-router@next --save
+import { createRouter, createWebHistory } from "vue-router";
+
+// Layout
+import DefaultLayout from "../layout/wrapper/index.vue";
+import AuthLayout from "../layout/wrapper/auth.vue";
+
+// Temporary frontend-only bypass for admin auth.
+const ADMIN_LOGIN_BYPASS = true;
+
+function getAuthState() {
+  const hasAdminToken = Boolean(localStorage.getItem("token_admin"));
+  const hasCustomerToken = Boolean(localStorage.getItem("khach_hang_token"));
+  const hasAdminAccess = ADMIN_LOGIN_BYPASS || hasAdminToken;
+
+  return {
+    hasAdminToken,
+    hasCustomerToken,
+    hasAdminAccess,
+    isAuthenticated: hasAdminAccess || hasCustomerToken,
+  };
+}
+
+function getDefaultAuthenticatedPath() {
+  const { hasAdminAccess, hasCustomerToken } = getAuthState();
+
+  if (hasCustomerToken && !hasAdminAccess) {
+    return "/admin/khach-hang";
+  }
+
+  if (hasAdminAccess) {
+    return "/admin/dashboard";
+  }
+
+  return "/admin/dang-nhap";
+}
 
 const routes = [
-    // loai-phong
-    {
-        path: '/admin/loai-phong',
-        component: () => import('../components/Admin/LoaiPhong/index.vue')
-    },
-    // dich vu
-    {
-        path: '/admin/dich-vu',
-        component: () => import('../components/Admin/DichVu/index.vue')
-    },
-    // phong
-    {
-        path: '/admin/quan-ly-phong',
-        component: () => import('../components/Admin/Phong/index.vue')
-    },
-    // chi tiet thue phong
-    {
-        path: '/admin/chi-tiet-thue-phong',
-        component: () => import('../components/Admin/ChiTietThuePhong/index.vue')
-    },
-    // Tinh Trang Phong
-    {
-        path: '/admin/tinh-trang-phong',
-        component: () => import('../components/Admin/TinhTrangPhong/index.vue')
-    },
-    // nhan-vien
-    {
-        path: '/admin/nhan-vien',
-        component: () => import('../components/Admin/NhanVien/index.vue')
-    },
-    // slide
-    {
-        path: '/admin/slide',
-        component: () => import('../components/Admin/Slide/index.vue')
-    },
-    // Review
-    {
-        path: '/admin/review',
-        component: () => import('../components/Admin/Review/index.vue')
-    },
-    // Phân Quyền
-    {
-        path: '/admin/phan-quyen',
-        component: () => import('../components/Admin/PhanQuyen/index.vue')
-    },
-    // Admin dang nhap
-    {
-        path: '/admin/dang-nhap',
-        component: () => import('../components/Admin/DangNhap/index.vue'),
-        meta: {layout: 'auth'}
-    },
+  {
+    path: "/",
+    redirect: () => getDefaultAuthenticatedPath(),
+  },
 
-    {
-        path: '/admin/khach-hang',
-        component: () => import('../components/Admin/KhachHang/index.vue'),
+  // ================= AUTH =================
+  {
+    path: "/admin/dang-nhap",
+    component: AuthLayout,
+    meta: {
+      requiresGuest: true,
     },
+    children: [
+      {
+        path: "",
+        component: () => import("../components/Admin/DangNhap/index.vue"),
+      }
+    ]
+  },
 
-    // HomePage
-    {
-        path: '/',
-        component: () => import('../components/Client/HomePage/index.vue'),
-        meta: {layout: 'client'}
+  // ================= ADMIN =================
+  {
+    path: "/admin",
+    component: DefaultLayout,
+    meta: {
+      requiresAuth: true,
     },
-    // Chi tiet phong
-    {
-        path: '/chi-tiet-phong',
-        component: () => import('../components/Client/ChiTietPhong/index.vue'),
-        meta: {layout: 'client'}
-    },
-    // Loai phong
-    {
-        path: '/dat-phong',
-        component: () => import('../components/Client/LoaiPhong/index.vue'),
-        meta: {layout: 'client'},
-        name: "datPhong",
-        props: true
-    },
-    {
-        path: '/admin/bai-viet',
-        component: () => import('../components/Admin/BaiViet/index.vue')
-    },
+    redirect: "/admin/dashboard",
+    children: [
 
-    {
-        path: '/tim-loai-phong',
-        component: () => import('../components/Client/TimLoaiPhong/index.vue'),
-        meta: {layout: 'client'}
-    },
-    {
-        path: '/danh-sach-phong',
-        component: () => import('../components/Client/DanhSachPhong/index.vue'),
-        meta: {layout: 'client'}
-    },
-    {
-        path: '/bai-viet',
-        component: () => import('../components/Client/BaiViet/index.vue'),
-        meta: {layout: 'client'}
-    },
-    {
-        path: '/khach-hang/dang-ky',
-        component: () => import('../components/Client/DangKy/index.vue'),
-        meta: {layout: 'auth'}
-    },
-]
+      // Dashboard
+      {
+        path: "dashboard",
+        component: () => import("../components/Admin/Dashboard/index.vue"),
+      },
+
+      // Khách hàng
+      {
+        path: "khach-hang",
+        alias: "users",
+        component: () => import("../components/Admin/QuanLyKhachHang/index.vue"),
+      },
+
+      
+
+      // Bất động sản
+      {
+        path: "bat-dong-san",
+        alias: "properties",
+        component: () => import("../components/Admin/QuanLyBDS/index.vue"),
+      },
+
+      // Gói tin
+      {
+        path: "goi-tin",
+        alias: "packages",
+        component: () => import("../components/Admin/QuanLyGoiTin/index.vue"),
+      },
+
+      // Quản lý Người Dùng Gói tin
+      {
+        path: "nguoi-dung-goi-tin",
+        alias: ["package-users", "quan-ly-nguoi-dung-goi-tin"],
+        component: () => import("../components/Admin/QuanLyNguoiDungGoiTin/index.vue"),
+      },
+
+      // Giao dịch
+      {
+        path: "giao-dich",
+        alias: "transactions",
+        component: () => import("../components/Admin/QuanLyGiaoDich/index.vue"),
+      },
+
+
+      // Phân quyền
+      {
+        path: "phan-quyen",
+        component: () => import("../components/Admin/PhanQuyen/index.vue"),
+      },
+      {
+        path: "phan-quyen/create",
+        component: () => import("../components/Admin/PhanQuyen/create.vue"),
+      },
+      {
+        path: "phan-quyen/edit/:id",
+        component: () => import("../components/Admin/PhanQuyen/edit.vue"),
+      },
+
+        
+
+
+    ]
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: () => getDefaultAuthenticatedPath(),
+  },
+
+];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes: routes
-})
+  history: createWebHistory(),
+  routes,
+  linkActiveClass: "router-link-active"
+});
 
-export default router
+router.beforeEach((to) => {
+  if (ADMIN_LOGIN_BYPASS && to.path === "/admin/dang-nhap") {
+    return "/admin/dashboard";
+  }
+
+  const { isAuthenticated } = getAuthState();
+
+  if (to.matched.some((record) => record.meta.requiresAuth) && !isAuthenticated) {
+    return {
+      path: "/admin/dang-nhap",
+      query: {
+        redirect: to.fullPath,
+      },
+    };
+  }
+
+  if (to.matched.some((record) => record.meta.requiresGuest) && isAuthenticated) {
+    return getDefaultAuthenticatedPath();
+  }
+
+  return true;
+});
+
+export default router;
